@@ -2641,7 +2641,7 @@ static u32 ice_parse_hdrs(struct ethtool_rxnfc *nfc)
 		hdrs |= ICE_FLOW_SEG_HDR_UDP | ICE_FLOW_SEG_HDR_IPV4;
 		break;
 	case SCTP_V4_FLOW:
-		hdrs |= ICE_FLOW_SEG_HDR_SCTP | ICE_FLOW_SEG_HDR_IPV4;
+		hdrs |= ICE_FLOW_SEG_HDR_GTPU_IP | ICE_FLOW_SEG_HDR_IPV4 |ICE_FLOW_SEG_HDR_IPV_OTHER;
 		break;
 	case TCP_V6_FLOW:
 		hdrs |= ICE_FLOW_SEG_HDR_TCP | ICE_FLOW_SEG_HDR_IPV6;
@@ -2650,7 +2650,7 @@ static u32 ice_parse_hdrs(struct ethtool_rxnfc *nfc)
 		hdrs |= ICE_FLOW_SEG_HDR_UDP | ICE_FLOW_SEG_HDR_IPV6;
 		break;
 	case SCTP_V6_FLOW:
-		hdrs |= ICE_FLOW_SEG_HDR_SCTP | ICE_FLOW_SEG_HDR_IPV6;
+		hdrs |= ICE_FLOW_SEG_HDR_GTPU_IP | ICE_FLOW_SEG_HDR_IPV6| ICE_FLOW_SEG_HDR_IPV_OTHER;
 		break;
 	default:
 		break;
@@ -2691,6 +2691,8 @@ static u64 ice_parse_hash_flds(struct ethtool_rxnfc *nfc)
 				hfld |= ICE_FLOW_HASH_FLD_IPV4_SA;
 			if (nfc->data & RXH_IP_DST)
 				hfld |= ICE_FLOW_HASH_FLD_IPV4_DA;
+
+			hfld |= ICE_FLOW_HASH_GTP_U_TEID;
 			break;
 		case TCP_V6_FLOW:
 		case UDP_V6_FLOW:
@@ -2699,6 +2701,8 @@ static u64 ice_parse_hash_flds(struct ethtool_rxnfc *nfc)
 				hfld |= ICE_FLOW_HASH_FLD_IPV6_SA;
 			if (nfc->data & RXH_IP_DST)
 				hfld |= ICE_FLOW_HASH_FLD_IPV6_DA;
+		
+			hfld |= ICE_FLOW_HASH_GTP_U_TEID;
 			break;
 		default:
 			break;
@@ -2772,14 +2776,18 @@ ice_set_rss_hash_opt(struct ice_vsi *vsi, struct ethtool_rxnfc *nfc)
 			vsi->vsi_num);
 		return -EINVAL;
 	}
-
 	status = ice_add_rss_cfg(&pf->hw, vsi->idx, hashed_flds, hdrs);
 	if (status) {
 		dev_dbg(dev, "ice_add_rss_cfg failed, vsi num = %d, error = %d\n",
 			vsi->vsi_num, status);
 		return status;
 	}
-
+	if(nfc->flow_type == SCTP_V4_FLOW){
+		dev_info(dev, "use SCTP_V4_FLOW. sctp flag is dummy, actury gtpv1-u rss mode \n");
+	}
+	if(nfc->flow_type == SCTP_V6_FLOW){
+		dev_info(dev, "use SCTP_V6_FLOW. sctp flag is dummy, actury gtpv1-u rss mode \n");
+	}
 	return 0;
 }
 
