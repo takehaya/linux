@@ -95,7 +95,7 @@ static struct test_item test_items[] = {
 
 static char stub_name[KSYM_NAME_LEN];
 
-static int stat_symbol_len(void *data, const char *name, struct module *mod, unsigned long addr)
+static int stat_symbol_len(void *data, const char *name, unsigned long addr)
 {
 	*(u32 *)data += strlen(name);
 
@@ -154,7 +154,7 @@ static void test_kallsyms_compression_ratio(void)
 	pr_info(" ---------------------------------------------------------\n");
 }
 
-static int lookup_name(void *data, const char *name, struct module *mod, unsigned long addr)
+static int lookup_name(void *data, const char *name, unsigned long addr)
 {
 	u64 t0, t1, t;
 	struct test_stat *stat = (struct test_stat *)data;
@@ -196,7 +196,7 @@ static bool match_cleanup_name(const char *s, const char *name)
 	if (!IS_ENABLED(CONFIG_LTO_CLANG))
 		return false;
 
-	p = strchr(s, '.');
+	p = strstr(s, ".llvm.");
 	if (!p)
 		return false;
 
@@ -207,7 +207,7 @@ static bool match_cleanup_name(const char *s, const char *name)
 	return !strncmp(s, name, len);
 }
 
-static int find_symbol(void *data, const char *name, struct module *mod, unsigned long addr)
+static int find_symbol(void *data, const char *name, unsigned long addr)
 {
 	struct test_stat *stat = (struct test_stat *)data;
 
@@ -343,27 +343,6 @@ static int test_kallsyms_basic_function(void)
 			namebuf[0] = 0;
 			goto failed;
 		}
-
-		/*
-		 * The first '.' may be the initial letter, in which case the
-		 * entire symbol name will be truncated to an empty string in
-		 * cleanup_symbol_name(). Do not test these symbols.
-		 *
-		 * For example:
-		 * cat /proc/kallsyms | awk '{print $3}' | grep -E "^\." | head
-		 * .E_read_words
-		 * .E_leading_bytes
-		 * .E_trailing_bytes
-		 * .E_write_words
-		 * .E_copy
-		 * .str.292.llvm.12122243386960820698
-		 * .str.24.llvm.12122243386960820698
-		 * .str.29.llvm.12122243386960820698
-		 * .str.75.llvm.12122243386960820698
-		 * .str.99.llvm.12122243386960820698
-		 */
-		if (IS_ENABLED(CONFIG_LTO_CLANG) && !namebuf[0])
-			continue;
 
 		lookup_addr = kallsyms_lookup_name(namebuf);
 

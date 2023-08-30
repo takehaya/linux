@@ -1077,7 +1077,7 @@ static irqreturn_t vcnl4010_irq_thread(int irq, void *p)
 	}
 
 	if (isr & VCNL4010_INT_DRDY && iio_buffer_enabled(indio_dev))
-		iio_trigger_poll_chained(indio_dev->trig);
+		iio_trigger_poll_nested(indio_dev->trig);
 
 end:
 	return IRQ_HANDLED;
@@ -1500,7 +1500,7 @@ static struct i2c_driver vcnl4000_driver = {
 		.pm	= pm_ptr(&vcnl4000_pm_ops),
 		.of_match_table = vcnl_4000_of_match,
 	},
-	.probe_new = vcnl4000_probe,
+	.probe = vcnl4000_probe,
 	.id_table = vcnl4000_id,
 	.remove	= vcnl4000_remove,
 };
