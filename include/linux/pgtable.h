@@ -206,6 +206,14 @@ static inline int pmd_young(pmd_t pmd)
 #endif
 
 #ifndef set_ptes
+
+#ifndef pte_next_pfn
+static inline pte_t pte_next_pfn(pte_t pte)
+{
+	return __pte(pte_val(pte) + (1UL << PFN_PTE_SHIFT));
+}
+#endif
+
 /**
  * set_ptes - Map consecutive pages to a contiguous range of addresses.
  * @mm: Address space to map the pages into.
@@ -231,7 +239,7 @@ static inline void set_ptes(struct mm_struct *mm, unsigned long addr,
 		if (--nr == 0)
 			break;
 		ptep++;
-		pte = __pte(pte_val(pte) + (1UL << PFN_PTE_SHIFT));
+		pte = pte_next_pfn(pte);
 	}
 	arch_leave_lazy_mmu_mode();
 }
@@ -368,6 +376,20 @@ static inline bool arch_has_hw_nonleaf_pmd_young(void)
 static inline bool arch_has_hw_pte_young(void)
 {
 	return false;
+}
+#endif
+
+#ifndef arch_check_zapped_pte
+static inline void arch_check_zapped_pte(struct vm_area_struct *vma,
+					 pte_t pte)
+{
+}
+#endif
+
+#ifndef arch_check_zapped_pmd
+static inline void arch_check_zapped_pmd(struct vm_area_struct *vma,
+					 pmd_t pmd)
+{
 }
 #endif
 
@@ -575,6 +597,20 @@ extern pmd_t pmdp_huge_clear_flush(struct vm_area_struct *vma,
 extern pud_t pudp_huge_clear_flush(struct vm_area_struct *vma,
 			      unsigned long address,
 			      pud_t *pudp);
+#endif
+
+#ifndef pte_mkwrite
+static inline pte_t pte_mkwrite(pte_t pte, struct vm_area_struct *vma)
+{
+	return pte_mkwrite_novma(pte);
+}
+#endif
+
+#if defined(CONFIG_ARCH_WANT_PMD_MKWRITE) && !defined(pmd_mkwrite)
+static inline pmd_t pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
+{
+	return pmd_mkwrite_novma(pmd);
+}
 #endif
 
 #ifndef __HAVE_ARCH_PTEP_SET_WRPROTECT
