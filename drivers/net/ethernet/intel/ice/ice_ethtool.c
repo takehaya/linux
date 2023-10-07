@@ -2494,6 +2494,9 @@ static u32 ice_parse_hdrs(struct ethtool_rxnfc *nfc)
 		hdrs |= ICE_FLOW_SEG_HDR_GTPU_IP | ICE_FLOW_SEG_HDR_IPV4;
 		break;
 	case GTPC_V4_FLOW:
+		hdrs |= ICE_FLOW_SEG_HDR_GTPC | ICE_FLOW_SEG_HDR_IPV4;
+		break;
+	case GTPC_TEID_V4_FLOW:
 		hdrs |= ICE_FLOW_SEG_HDR_GTPC_TEID | ICE_FLOW_SEG_HDR_IPV4;
 		break;
 	case GTPU_EH_V4_FLOW:
@@ -2518,6 +2521,9 @@ static u32 ice_parse_hdrs(struct ethtool_rxnfc *nfc)
 		hdrs |= ICE_FLOW_SEG_HDR_GTPU_IP | ICE_FLOW_SEG_HDR_IPV6;
 		break;
 	case GTPC_V6_FLOW:
+		hdrs |= ICE_FLOW_SEG_HDR_GTPC | ICE_FLOW_SEG_HDR_IPV6;
+		break;
+	case GTPC_TEID_V6_FLOW:
 		hdrs |= ICE_FLOW_SEG_HDR_GTPC_TEID | ICE_FLOW_SEG_HDR_IPV6;
 		break;
 	case GTPU_EH_V6_FLOW:
@@ -2573,6 +2579,7 @@ static u64 ice_parse_hash_flds(struct ethtool_rxnfc *nfc)
 		case SCTP_V4_FLOW:
 		case GTPU_V4_FLOW:
 		case GTPC_V4_FLOW:
+		case GTPC_TEID_V4_FLOW:
 		case GTPU_EH_V4_FLOW:
 		case GTPU_UL_V4_FLOW:
 		case GTPU_DL_V4_FLOW:
@@ -2586,6 +2593,7 @@ static u64 ice_parse_hash_flds(struct ethtool_rxnfc *nfc)
 		case SCTP_V6_FLOW:
 		case GTPU_V6_FLOW:
 		case GTPC_V6_FLOW:
+		case GTPC_TEID_V6_FLOW:
 		case GTPU_EH_V6_FLOW:
 		case GTPU_UL_V6_FLOW:
 		case GTPU_DL_V6_FLOW:
@@ -2636,6 +2644,33 @@ static u64 ice_parse_hash_flds(struct ethtool_rxnfc *nfc)
 			if (nfc->data & RXH_L4_B_2_3)
 				hfld |= ICE_FLOW_HASH_FLD_TCP_DST_PORT |
 						ICE_FLOW_HASH_FLD_UDP_DST_PORT;
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (nfc->data & RXH_GTP_TEID) {
+		switch (nfc->flow_type) {
+		case GTPC_TEID_V4_FLOW:
+		case GTPC_TEID_V6_FLOW:
+			hfld |= ICE_FLOW_HASH_FLD_GTPC_TEID;
+			break;
+		case GTPU_V4_FLOW:
+		case GTPU_V6_FLOW:
+			hfld |= ICE_FLOW_HASH_FLD_GTPU_IP_TEID;
+			break;
+		case GTPU_EH_V4_FLOW:
+		case GTPU_EH_V6_FLOW:
+			hfld |= ICE_FLOW_HASH_FLD_GTPU_EH_TEID;
+			break;
+		case GTPU_UL_V4_FLOW:
+		case GTPU_UL_V6_FLOW:
+			hfld |= ICE_FLOW_HASH_FLD_GTPU_UP_TEID;
+			break;
+		case GTPU_DL_V4_FLOW:
+		case GTPU_DL_V6_FLOW:
+			hfld |= ICE_FLOW_HASH_FLD_GTPU_DWN_TEID;
 			break;
 		default:
 			break;
@@ -2777,6 +2812,13 @@ ice_get_rss_hash_opt(struct ice_vsi *vsi, struct ethtool_rxnfc *nfc)
 		hash_flds & ICE_FLOW_HASH_FLD_GTPU_UP_TEID ||
 		hash_flds & ICE_FLOW_HASH_FLD_GTPU_DWN_TEID)
 		nfc->data |= (u64)RXH_L4_B_2_3;
+
+	if (hash_flds & ICE_FLOW_HASH_FLD_GTPC_TEID ||
+		hash_flds & ICE_FLOW_HASH_FLD_GTPU_IP_TEID ||
+		hash_flds & ICE_FLOW_HASH_FLD_GTPU_EH_TEID ||
+		hash_flds & ICE_FLOW_HASH_FLD_GTPU_UP_TEID ||
+		hash_flds & ICE_FLOW_HASH_FLD_GTPU_DWN_TEID)
+		nfc->data |= (u64)RXH_GTP_TEID;
 }
 
 /**
