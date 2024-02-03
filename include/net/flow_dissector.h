@@ -326,6 +326,14 @@ struct flow_dissector_key_cfm {
 	u8	opcode;
 };
 
+/**
+ * struct flow_dissector_key_tcp:
+ * @teid: teid
+ */
+struct flow_dissector_key_gtpu {
+	u32 teid;
+};
+
 #define FLOW_DIS_CFM_MDL_MASK GENMASK(7, 5)
 #define FLOW_DIS_CFM_MDL_MAX 7
 
@@ -363,6 +371,7 @@ enum flow_dissector_key_id {
 	FLOW_DISSECTOR_KEY_L2TPV3, /* struct flow_dissector_key_l2tpv3 */
 	FLOW_DISSECTOR_KEY_CFM, /* struct flow_dissector_key_cfm */
 	FLOW_DISSECTOR_KEY_IPSEC, /* struct flow_dissector_key_ipsec */
+	FLOW_DISSECTOR_KEY_GTPU, /* struct flow_dissector_key_gtpu */
 
 	FLOW_DISSECTOR_KEY_MAX,
 };

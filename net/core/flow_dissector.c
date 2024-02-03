@@ -13,6 +13,7 @@
 #include <net/gre.h>
 #include <net/pptp.h>
 #include <net/tipc.h>
+#include <net/gtp.h>
 #include <linux/igmp.h>
 #include <linux/icmp.h>
 #include <linux/sctp.h>
@@ -25,6 +26,7 @@
 #include <linux/if_hsr.h>
 #include <linux/mpls.h>
 #include <linux/tcp.h>
+#include <linux/udp.h>
 #include <linux/ptp_classify.h>
 #include <net/flow_dissector.h>
 #include <net/pkt_cls.h>
@@ -824,6 +826,34 @@ __skb_flow_dissect_tcp(const struct sk_buff *skb,
 }
 
 static void
+__skb_flow_dissect_gtpu(const struct sk_buff *skb,
+		       struct flow_dissector *flow_dissector,
+		       void *target_container, const void *data,
+		       int thoff, int hlen)
+{
+	struct flow_dissector_key_gtpu *key_gtpu;
+	struct udphdr *ud, _ud;
+	struct gtp1_header *gtpu;
+
+	if (!dissector_uses_key(flow_dissector, FLOW_DISSECTOR_KEY_GTPU))
+		return;
+
+	ud = __skb_header_pointer(skb, thoff, sizeof(struct udphdr), data, hlen, &_ud);
+	if (!ud)
+		return;
+
+	if (unlikely(ntohs(ud->len) < sizeof(struct udphdr) + sizeof(struct gtp1_header)))
+		return;
+
+	gtpu = (struct gtp1_header*)(ud + sizeof(struct udphdr));
+
+	key_gtpu = skb_flow_dissector_target(flow_dissector,
+					    FLOW_DISSECTOR_KEY_GTPU,
+					    target_container);
+	key_gtpu->teid = gtpu->tid & htons(0x0FFFF);
+}
+
+static void
 __skb_flow_dissect_ports(const struct sk_buff *skb,
 			 struct flow_dissector *flow_dissector,
 			 void *target_container, const void *data,
@@ -1606,6 +1636,15 @@ ip_proto_again:
 				       data, nhoff, hlen);
 		break;
 
+	case IPPROTO_UDP:{
+		__be16 dst_port;
+		dst_port = (__be16)(__skb_flow_get_ports(skb, nhoff, ip_proto, data, hlen) & 0xFFFF);
+
+		if (dst_port == htons(GTP1U_PORT))
+			__skb_flow_dissect_gtpu(skb, flow_dissector, target_container,
+						data, nhoff, hlen);
+		break;
+	}
 	case IPPROTO_ICMP:
 	case IPPROTO_ICMPV6:
 		__skb_flow_dissect_icmp(skb, flow_dissector, target_container,
