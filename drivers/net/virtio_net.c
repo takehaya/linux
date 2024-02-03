@@ -3137,6 +3137,20 @@ static void virtnet_get_hashflow(const struct virtnet_info *vi, struct ethtool_r
 			info->data = RXH_IP_SRC | RXH_IP_DST;
 
 		break;
+	case GTPU_V4_FLOW:
+		if (vi->rss_hash_types_saved & VIRTIO_NET_RSS_HASH_TYPE_GTPUv4) {
+			info->data = RXH_GTP_TEID | RXH_L4_B_0_1 | RXH_L4_B_2_3;
+		} else if (vi->rss_hash_types_saved & VIRTIO_NET_RSS_HASH_TYPE_IPv4) {
+			info->data = RXH_IP_SRC | RXH_IP_DST;
+		}
+		break;
+	case GTPU_V6_FLOW:
+		if (vi->rss_hash_types_saved & VIRTIO_NET_RSS_HASH_TYPE_GTPUv6) {
+			info->data = RXH_GTP_TEID | RXH_L4_B_0_1 | RXH_L4_B_2_3;
+		} else if (vi->rss_hash_types_saved & VIRTIO_NET_RSS_HASH_TYPE_IPv6) {
+			info->data = RXH_IP_SRC | RXH_IP_DST;
+		}
+		break;
 	default:
 		info->data = 0;
 		break;
@@ -3148,9 +3162,9 @@ static bool virtnet_set_hashflow(struct virtnet_info *vi, struct ethtool_rxnfc *
 	u32 new_hashtypes = vi->rss_hash_types_saved;
 	bool is_disable = info->data & RXH_DISCARD;
 	bool is_l4 = info->data == (RXH_IP_SRC | RXH_IP_DST | RXH_L4_B_0_1 | RXH_L4_B_2_3);
-
+	bool is_gtpu = info->data == (RXH_IP_SRC | RXH_IP_DST | RXH_GTP_TEID);
 	/* supports only 'sd', 'sdfn' and 'r' */
-	if (!((info->data == (RXH_IP_SRC | RXH_IP_DST)) | is_l4 | is_disable))
+	if (!((info->data == (RXH_IP_SRC | RXH_IP_DST)) | is_gtpu | is_l4 | is_disable))
 		return false;
 
 	switch (info->flow_type) {
@@ -3187,6 +3201,18 @@ static bool virtnet_set_hashflow(struct virtnet_info *vi, struct ethtool_rxnfc *
 		new_hashtypes &= ~VIRTIO_NET_RSS_HASH_TYPE_IPv6;
 		if (!is_disable)
 			new_hashtypes = VIRTIO_NET_RSS_HASH_TYPE_IPv6;
+		break;
+	case GTPU_V4_FLOW:
+		new_hashtypes &= ~(VIRTIO_NET_RSS_HASH_TYPE_IPv4 | VIRTIO_NET_RSS_HASH_TYPE_GTPUv4);
+		if (!is_disable)
+			new_hashtypes |= VIRTIO_NET_RSS_HASH_TYPE_IPv4
+				| (is_gtpu ? VIRTIO_NET_RSS_HASH_TYPE_GTPUv4 : 0);
+		break;
+	case GTPU_V6_FLOW:
+		new_hashtypes &= ~(VIRTIO_NET_RSS_HASH_TYPE_IPv6 | VIRTIO_NET_RSS_HASH_TYPE_GTPUv6);
+		if (!is_disable)
+			new_hashtypes |= VIRTIO_NET_RSS_HASH_TYPE_IPv6
+				| (is_gtpu ? VIRTIO_NET_RSS_HASH_TYPE_GTPUv6 : 0);
 		break;
 	default:
 		/* unsupported flow */

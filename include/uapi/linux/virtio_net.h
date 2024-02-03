@@ -87,6 +87,8 @@
 #define VIRTIO_NET_RSS_HASH_TYPE_IP_EX         (1 << 6)
 #define VIRTIO_NET_RSS_HASH_TYPE_TCP_EX        (1 << 7)
 #define VIRTIO_NET_RSS_HASH_TYPE_UDP_EX        (1 << 8)
+#define VIRTIO_NET_RSS_HASH_TYPE_GTPUv4         (1 << 9)
+#define VIRTIO_NET_RSS_HASH_TYPE_GTPUv6         (1 << 10)
 
 struct virtio_net_config {
 	/* The config defining mac address (if VIRTIO_NET_F_MAC) */
